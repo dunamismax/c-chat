@@ -1,0 +1,429 @@
+# =============================================================================
+# C Monorepo .gitignore - Comprehensive ignore patterns for ARM64 C development
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# C/C++ Build Artifacts
+# -----------------------------------------------------------------------------
+
+# Object files and dependencies
+*.o
+*.ko
+*.obj
+*.elf
+*.d
+*.dep
+*.depend
+
+# Precompiled headers
+*.gch
+*.pch
+
+# Static and shared libraries
+*.lib
+*.a
+*.la
+*.lo
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+calculator
+file_utils
+text_processor
+tic_tac_toe
+number_guessing
+
+# Linker output
+*.ilk
+*.map
+*.exp
+*.def
+
+# Debug information
+*.dSYM/
+*.su
+*.idb
+*.pdb
+*.dwo
+
+# Assembly listings
+*.lst
+*.s
+
+# -----------------------------------------------------------------------------
+# Build Directories and Generated Files
+# -----------------------------------------------------------------------------
+
+# Build output directories
+build/
+bin/
+obj/
+lib/
+dist/
+release/
+debug/
+profile/
+
+# CMake generated files (if using CMake)
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile.cmake
+
+# Autotools generated files
+.deps/
+.libs/
+aclocal.m4
+autom4te.cache/
+config.guess
+config.sub
+configure
+depcomp
+install-sh
+ltmain.sh
+missing
+compile
+
+# -----------------------------------------------------------------------------
+# Testing and Analysis
+# -----------------------------------------------------------------------------
+
+# Test outputs
+test_results/
+test_*.xml
+*.gcda
+*.gcno
+*.gcov
+coverage.info
+coverage/
+lcov.info
+
+# Profiling data
+gmon.out
+*.prof
+*.profdata
+*.profraw
+callgrind.out.*
+massif.out.*
+cachegrind.out.*
+
+# Static analysis outputs
+cppcheck.xml
+clang-tidy.log
+scan-build-*/
+
+# Sanitizer outputs
+*.asan
+*.msan
+*.tsan
+*.ubsan
+AddressSanitizer.*
+MemorySanitizer.*
+ThreadSanitizer.*
+
+# -----------------------------------------------------------------------------
+# Documentation
+# -----------------------------------------------------------------------------
+
+# Generated documentation
+docs/html/
+docs/latex/
+docs/man/
+docs/xml/
+doxygen_warnings.log
+*.docset/
+
+# PDF outputs
+*.pdf
+
+# -----------------------------------------------------------------------------
+# Development Tools and IDEs
+# -----------------------------------------------------------------------------
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Xcode
+*.xcodeproj/
+*.xcworkspace/
+DerivedData/
+*.xcuserstate
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+
+# CLion / IntelliJ
+.idea/
+.idea
+cmake-build-*/
+
+# Eclipse CDT
+.cproject
+.project
+.settings/
+
+# Code::Blocks
+*.cbp
+*.layout
+*.depend
+
+# Dev-C++
+*.dev
+
+# QtCreator
+*.pro.user
+*.pro.user.*
+
+# CodeLite
+*.workspace
+*.project
+
+# Vim/Neovim
+*.swp
+*.swo
+*~
+.*.swp
+.*.swo
+tags
+TAGS
+
+# Emacs
+*~
+\#*\#
+.\#*
+.dir-locals.el
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# -----------------------------------------------------------------------------
+# Operating System Files
+# -----------------------------------------------------------------------------
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.TemporaryItems
+.DocumentRevisions-V100
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# -----------------------------------------------------------------------------
+# Version Control and Backup Files
+# -----------------------------------------------------------------------------
+
+# Git
+*.orig
+*.rej
+
+# Subversion
+.svn/
+
+# Mercurial
+.hg/
+.hgignore
+
+# Bazaar
+.bzr/
+
+# CVS
+CVS/
+.cvsignore
+
+# Backup files
+*.bak
+*.backup
+*.tmp
+*.temp
+*_backup
+*_old
+
+# -----------------------------------------------------------------------------
+# Logs and Runtime Files
+# -----------------------------------------------------------------------------
+
+# Log files
+*.log
+logs/
+*.out
+*.err
+
+# PID files
+*.pid
+
+# Lock files
+*.lock
+
+# Core dumps
+core
+core.*
+vgcore.*
+
+# Crash dumps
+crash_*
+*.crash
+*.dump
+
+# -----------------------------------------------------------------------------
+# Package Managers and Dependencies
+# -----------------------------------------------------------------------------
+
+# pkg-config
+*.pc
+
+# Conan
+conanfile.txt.user
+conandata.yml.user
+.conan/
+
+# vcpkg
+vcpkg_installed/
+
+# -----------------------------------------------------------------------------
+# Security and Sensitive Files
+# -----------------------------------------------------------------------------
+
+# SSH keys
+*.pem
+*.key
+id_rsa*
+id_dsa*
+id_ecdsa*
+id_ed25519*
+
+# SSL certificates
+*.crt
+*.cer
+*.p12
+*.pfx
+
+# Configuration with secrets
+secrets.h
+config_local.h
+.env
+.env.local
+
+# -----------------------------------------------------------------------------
+# Temporary and Cache Files
+# -----------------------------------------------------------------------------
+
+# Temporary directories
+tmp/
+temp/
+cache/
+.cache/
+
+# Editor temporary files
+.#*
+\#*#
+*~
+
+# System temporary files
+*.swp
+*.swo
+*.tmp
+*.temp
+
+# -----------------------------------------------------------------------------
+# ARM64 / Apple Silicon Specific
+# -----------------------------------------------------------------------------
+
+# Universal binaries
+*.universal
+
+# Apple code signing
+*.entitlements
+*.mobileprovision
+*.p12
+
+# Instruments
+*.trace
+
+# -----------------------------------------------------------------------------
+# Custom Project Ignores
+# -----------------------------------------------------------------------------
+
+# Ignore specific executables by name (add as needed)
+/calculator
+/file_utils
+/text_processor
+/tic_tac_toe
+/number_guessing
+
+# Ignore test executables
+test_*
+*_test
+*_tests
+
+# Local development files
+local/
+.local/
+dev/
+scratch/
+
+# Performance benchmark results
+benchmark_results/
+*.bench
+
+# Memory usage reports
+*.memusage
+
+# Custom build configurations
+build_local.mk
+config_local.mk
+
+# -----------------------------------------------------------------------------
+# Keep Important Files (Negative Patterns)
+# -----------------------------------------------------------------------------
+
+# Keep important makefiles and scripts
+!Makefile
+!makefile
+!GNUmakefile
+!*.mk
+!scripts/*.sh
+!scripts/*.py
+
+# Keep important documentation
+!README.md
+!LICENSE
+!CHANGELOG.md
+!docs/*.md
+
+# Keep configuration templates
+!*.template
+!*.example
+!config.h.in
