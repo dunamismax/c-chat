@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="c.png" alt="C Monorepo Logo" width="200" />
+  <img src="c.png" alt="C-Chat Logo" width="200" />
 </p>
 
 <p align="center">
-  <a href="https://github.com/dunamismax/c-monorepo">
-    <img src="https://readme-typing-svg.demolab.com/?font=Fira+Code&size=24&pause=1000&color=3071A4&center=true&vCenter=true&width=800&lines=C+Programming+Monorepo;ARM64+Optimized+Build+System;Educational+%2B+Production+Ready;High-Performance+C+Development;From+CLI+Tools+to+Games." alt="Typing SVG" />
+  <a href="https://github.com/dunamismax/c-chat">
+    <img src="https://readme-typing-svg.demolab.com/?font=Fira+Code&size=24&pause=1000&color=3071A4&center=true&vCenter=true&width=800&lines=C-Chat+Secure+Messaging;End-to-End+Encrypted+CLI+Chat;ARM64+Optimized+Security;Zero-Knowledge+Server+Architecture;Pure+C+Implementation." alt="Typing SVG" />
   </a>
 </p>
 
@@ -12,24 +12,24 @@
   <a href="https://clang.llvm.org/"><img src="https://img.shields.io/badge/Clang-17+-blue.svg?logo=llvm" alt="Clang Version"></a>
   <a href="https://developer.apple.com/documentation/apple-silicon"><img src="https://img.shields.io/badge/ARM64-Apple_Silicon-black.svg?logo=apple" alt="ARM64 Apple Silicon"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="MIT License"></a>
-  <a href="https://github.com/dunamismax/c-monorepo/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"></a>
-  <a href="https://github.com/dunamismax/c-monorepo/stargazers"><img src="https://img.shields.io/github/stars/dunamismax/c-monorepo" alt="GitHub Stars"></a>
+  <a href="https://github.com/dunamismax/c-chat/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"></a>
+  <a href="https://github.com/dunamismax/c-chat/stargazers"><img src="https://img.shields.io/github/stars/dunamismax/c-chat" alt="GitHub Stars"></a>
 </p>
 
 ---
 
 ## About This Project
 
-A production-ready, security-hardened C monorepo optimized for ARM64 Apple Silicon. Features 5 working applications, 2 optimized libraries, and a comprehensive build system with advanced compiler optimizations and automated testing.
+A secure, end-to-end encrypted command-line chat application built entirely in pure C. C-Chat provides private messaging with zero-knowledge server architecture, ensuring maximum security and transparency through open-source implementation.
 
 **Key Features:**
 
+- **End-to-End Encryption**: Messages encrypted on your device, decryptable only by intended recipient
+- **Zero-Knowledge Server**: Server never accesses private keys or unencrypted content
 - **ARM64 Optimized**: Apple Silicon-specific optimizations with parallel builds and LTO
 - **Security Hardened**: Buffer overflow protection, input validation, memory safety
-- **Production Ready**: Comprehensive testing and quality assurance with automated test suite
-- **Professional Build System**: Cross-platform Makefile with intelligent dependency detection
-- **Complete Applications**: Calculator, file utilities, text processor, games with AI
-- **Optimized Libraries**: Math utilities and data structures for high-performance computing
+- **Pure C Implementation**: Standard C for transparency, auditability, and performance
+- **CLI Interface**: Clean, distraction-free terminal experience for focused conversations
 
 ---
 
@@ -51,18 +51,17 @@ brew install clang-format    # macOS
 ### Build & Run
 
 ```bash
-git clone https://github.com/dunamismax/c-monorepo.git
-cd c-monorepo
+git clone https://github.com/dunamismax/c-chat.git
+cd c-chat
 
-# Build everything
+# Build the application
 make                          # Release mode (default)
 make MODE=debug              # Debug with sanitizers
 make MODE=profile            # Profile build
 
-# Run applications
-make run-calculator          # Scientific calculator
-make run-tic_tac_toe        # AI-powered game
-make run-file_utils         # File operations
+# Run c-chat
+make run                     # Launch application
+./build/release/bin/c-chat   # Direct execution
 
 # Development workflow
 make test                    # Run comprehensive test suite
@@ -79,7 +78,7 @@ Professional cross-platform Makefile with ARM64 optimization, parallel builds, a
 
 ```bash
 # Building
-make libs apps              # Build libraries and applications
+make c-chat                 # Build main application
 make test                   # Build and run test suite
 make clean                  # Clean build artifacts
 
@@ -89,7 +88,7 @@ make lint                   # Static analysis with clang-tidy
 make benchmark             # Performance testing
 
 # Execution
-make run-<app>             # Run specific application
+make run                   # Run c-chat application
 make install               # Install to /usr/local
 make help                  # Show all targets
 ```
@@ -107,13 +106,16 @@ make help                  # Show all targets
 ## Project Structure
 
 ```
-c-monorepo/
-├── apps/                   # Applications
-│   ├── cli/               # Command-line tools
-│   └── games/             # Interactive games
-├── libs/                  # Shared libraries
-│   ├── data_structures/   # Vector implementation
-│   └── math_utils/        # Mathematical algorithms
+c-chat/
+├── src/                   # Source code
+│   ├── main.c            # Application entry point
+│   ├── interface.c       # CLI interface and commands
+│   ├── user.c            # User management and authentication
+│   ├── chat.c            # Chat functionality and messaging
+│   ├── crypto.c          # Cryptographic operations
+│   ├── network.c         # Network communication
+│   └── utils.c           # Utility functions
+├── include/               # Header files
 ├── tests/                 # Comprehensive test suite
 ├── scripts/               # Build automation
 └── Makefile              # Build system
@@ -123,31 +125,39 @@ c-monorepo/
 
 - **C11 Standard** with ARM64-specific optimizations
 - **Clang Compiler** for Apple Silicon and cross-platform compatibility
-- **Comprehensive Testing** with automated test suite and security scanning
-- **Static Analysis** with clang-tidy and AddressSanitizer
+- **End-to-End Encryption** with public-key cryptography
+- **Zero-Knowledge Architecture** for maximum privacy
 - **Cross-Platform Support** for macOS and Linux
 
 ---
 
-## Applications & Libraries
+## How It Works
 
-### Applications
+C-Chat implements a secure client-server architecture with end-to-end encryption:
 
-**Calculator**: Scientific calculator with advanced mathematical operations, factorial, prime checking, and comprehensive input validation.
+### Security Architecture
 
-**File Utils**: Secure file operations with path traversal protection and system programming features.
+**Key Generation**: Each user generates a unique cryptographic key pair on first use - a public key shared with the server and a private key stored exclusively on the local device.
 
-**Text Processor**: String manipulation tool with case conversion, find/replace, and interactive sorting.
+**Zero-Knowledge Server**: The server manages user accounts and relays encrypted messages but never has access to private keys or unencrypted content.
 
-**Tic-Tac-Toe**: AI-powered game with intelligent strategies and two-player mode.
+**End-to-End Encryption**: Messages are encrypted with the recipient's public key before transmission and can only be decrypted by the recipient's private key.
 
-**Number Guessing**: Multi-difficulty game with hint system and performance tracking.
+**Message Relay**: The server simply forwards encrypted data between clients, making intercepted communications unreadable to any third party.
 
-### Libraries
+### Usage Commands
 
-**Math Utils** (`libmath_utils.a`): Euclidean GCD/LCM, factorial, Fibonacci, prime checking, and power functions optimized for ARM64.
+```bash
+# Account Management
+c-chat --register <username>    # Register new user account
+c-chat --login <username>       # Login to your account
+c-chat --list-users            # List all registered users
 
-**Data Structures** (`libdata_structures.a`): Dynamic vector implementation with bounds checking and efficient memory management.
+# In-Chat Commands
+chat <username>                # Start encrypted chat session
+/exit                         # Leave current chat session
+/quit                         # Exit c-chat application
+```
 
 ---
 
@@ -156,31 +166,38 @@ c-monorepo/
 ### Comprehensive Test Suite
 
 ```bash
-make test                   # All tests (29 tests across 4 suites)
+make test                   # All tests with security validation
 make test MODE=debug       # Debug build testing
 make test MODE=release     # Release validation
 ```
 
 **Test Coverage:**
 
-- **Unit Tests**: Math utilities, data structures
-- **Integration Tests**: Application functionality and security
-- **Security Tests**: Buffer overflow, format string protection
+- **Unit Tests**: Cryptographic functions, user validation, utility functions
+- **Integration Tests**: CLI interface, command parsing, error handling
+- **Security Tests**: Input validation, buffer overflow protection
 - **Cross-Platform**: macOS and Linux compatibility
 
 ### Automated Testing
 
-Comprehensive test automation with multi-platform support:
+Comprehensive test automation with security focus:
 
-- **Build & Test**: Debug, release, and profile modes across macOS and Linux
-- **Security Testing**: Buffer overflow and vulnerability detection
+- **Build & Test**: Debug, release, and profile modes across platforms
+- **Security Testing**: Memory safety and vulnerability detection
 - **Static Analysis**: clang-tidy integration with comprehensive checks
-- **Performance Testing**: Benchmarking on release builds
-- **Quality Assurance**: All tests must pass with comprehensive quality gates
+- **Performance Testing**: Benchmarking on optimized builds
+- **Quality Assurance**: All tests must pass with security validation
 
 ---
 
 ## Security Features
+
+### Cryptographic Security
+
+- End-to-end encryption with public-key cryptography
+- Secure key generation and local private key storage
+- Zero-knowledge server architecture prevents data exposure
+- No plaintext message storage on server infrastructure
 
 ### Memory Safety
 
@@ -191,10 +208,10 @@ Comprehensive test automation with multi-platform support:
 
 ### Input Validation
 
-- Path traversal prevention in file operations
-- Format string attack protection in calculator
-- Comprehensive input sanitization across all applications
-- Integer overflow detection in mathematical operations
+- Username validation with character restrictions
+- Message length limits and sanitization
+- Command parsing with secure input handling
+- Protection against injection attacks
 
 ### Secure Development
 
@@ -208,7 +225,7 @@ Comprehensive test automation with multi-platform support:
 
 **Build Issues**: Run `make clean && make` to rebuild. Ensure Xcode Command Line Tools installed on macOS.
 
-**Test Failures**: Build applications first with `make apps`. Tests require built binaries for integration testing.
+**Test Failures**: Run `make test MODE=debug` for detailed debugging output with sanitizers enabled.
 
 **Missing Tools**: clang-tidy is optional - install with `brew install llvm` or lint target will skip.
 
@@ -218,7 +235,7 @@ Comprehensive test automation with multi-platform support:
 
 ## Support This Project
 
-If you find this project valuable for your C development journey, consider supporting its continued development:
+If you find this project valuable for your secure communication needs, consider supporting its continued development:
 
 <p align="center">
   <a href="https://www.buymeacoffee.com/dunamismax" target="_blank">
@@ -247,6 +264,6 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 ---
 
 <p align="center">
-  <strong>Built with Pure C for ARM64</strong><br>
-  <sub>A comprehensive foundation for high-performance, Apple Silicon-optimized C development</sub>
+  <strong>Built with Pure C for Maximum Security</strong><br>
+  <sub>Secure, private, end-to-end encrypted communication for the command line</sub>
 </p>

@@ -51,23 +51,23 @@ endif
 CFLAGS := -std=c11 -Wall -Wextra $(ARM64_OPTS) $(OPTS) -fstack-protector-strong
 
 # =============================================================================
-# SMART DISCOVERY & PATHS
+# PATHS
 # =============================================================================
 
 BUILD_DIR := build/$(MODE)
-LIBS := $(shell find libs -name "*.c" | sed 's|libs/\([^/]*\)/.*|libs/\1|' | sort -u)
-APPS := $(shell find apps -name "*.c" | sed 's|apps/[^/]*/\([^/]*\)/.*|\1|' | sort -u)
-LIB_TARGETS := $(LIBS:libs/%=$(BUILD_DIR)/lib/lib%.a)
-APP_TARGETS := $(APPS:%=$(BUILD_DIR)/bin/%)
+SRC_DIR := src
+INCLUDE_DIR := include
+TEST_DIR := tests
+APP_NAME := c-chat
 
-# Auto-detect include paths
-INCLUDES := $(shell find libs -name include -type d | sed 's/^/-I/')
+# Include paths
+INCLUDES := -I$(INCLUDE_DIR)
 
 # =============================================================================
 # TARGETS
 # =============================================================================
 
-.PHONY: all libs apps tests build-tests clean install help
+.PHONY: all c-chat tests build-tests clean install help
 .DEFAULT_GOAL := all
 
 # Parallel builds enabled by default
@@ -77,43 +77,27 @@ else
   MAKEFLAGS += -j$(shell nproc)
 endif
 
-all: libs apps
+all: c-chat
 	@echo "✓ Build completed ($(MODE) mode) - Optimized for $(UNAME_S) $(UNAME_M)"
 
-libs: $(LIB_TARGETS)
-apps: $(APP_TARGETS)
+c-chat: $(BUILD_DIR)/bin/$(APP_NAME)
 
-build-tests: libs
+build-tests:
 	@echo "Building test suite..."
 	@mkdir -p $(BUILD_DIR)/bin
-	@for test_file in $$(find tests -name "*.c" -not -name "test_framework.c"); do \
+	@for test_file in $$(find $(TEST_DIR) -name "*.c"); do \
 		test_name=$$(basename $$test_file .c); \
 		echo "Building test: $$test_name"; \
-		$(CC) $(CFLAGS) $(INCLUDES) -Itests $$test_file tests/test_framework.c $(LIB_TARGETS) -o $(BUILD_DIR)/bin/$$test_name; \
+		$(CC) $(CFLAGS) $(INCLUDES) -I$(TEST_DIR) $$test_file $(shell find $(SRC_DIR) -name "*.c" -not -name "main.c") -o $(BUILD_DIR)/bin/$$test_name; \
 	done
 	@echo "✓ Test suite built"
 
-# Smart library building
-$(BUILD_DIR)/lib/lib%.a: libs/%
+# Build main application
+$(BUILD_DIR)/bin/$(APP_NAME):
 	@mkdir -p $(dir $@) $(BUILD_DIR)/obj
-	@echo "Building library: $(notdir $@)"
-	@for src in $$(find $< -name "*.c"); do \
-		obj=$$(echo $$src | sed 's|libs/|$(BUILD_DIR)/obj/|' | sed 's|\.c|\.o|'); \
-		mkdir -p $$(dirname $$obj); \
-		$(CC) $(CFLAGS) $(INCLUDES) -c $$src -o $$obj; \
-	done
-	@$(AR) rcs $@ $$(find $(BUILD_DIR)/obj/$* -name "*.o")
-
-# Smart application building  
-$(BUILD_DIR)/bin/%: $(LIB_TARGETS)
-	@mkdir -p $(dir $@) $(BUILD_DIR)/obj
-	@echo "Building app: $*"
-	@app_dir=$$(find apps -name "$*" -type d); \
-	if [ -f "$$app_dir/src/$*.c" ]; then \
-		$(CC) $(CFLAGS) $(INCLUDES) $$app_dir/src/$*.c $(LIB_TARGETS) -o $@; \
-	else \
-		$(CC) $(CFLAGS) $(INCLUDES) $$(find $$app_dir -name "*.c") $(LIB_TARGETS) -o $@; \
-	fi
+	@echo "Building $(APP_NAME)..."
+	@$(CC) $(CFLAGS) $(INCLUDES) $(shell find $(SRC_DIR) -name "*.c") -o $@
+	@echo "✓ $(APP_NAME) built successfully"
 
 
 
@@ -137,9 +121,14 @@ format:
 lint:
 	@clang-tidy $(shell find . -name "*.c") -- $(CFLAGS) $(INCLUDES) 2>/dev/null || echo "○ clang-tidy not available"
 
-test:
-	@echo "Running tests via test runner..."
-	@./scripts/run_tests.sh -m $(MODE)
+test: build-tests
+	@echo "Running tests..."
+	@for test in $(BUILD_DIR)/bin/test_*; do \
+		if [ -f "$$test" ]; then \
+			echo "Running $$(basename $$test)..."; \
+			$$test; \
+		fi; \
+	done
 	@echo "✓ Tests completed"
 
 profile:
@@ -151,7 +140,7 @@ benchmark: all
 	@echo "Benchmarking ARM64 optimized binaries..."
 	@for app in $(BUILD_DIR)/bin/*; do echo "$$app:"; time $$app --version 2>/dev/null || time $$app </dev/null || true; done
 
-run-%: $(BUILD_DIR)/bin/%
+run: $(BUILD_DIR)/bin/$(APP_NAME)
 	@./$<
 
 sysinfo:
@@ -169,25 +158,22 @@ endif
 	@echo "Mode: $(MODE)"
 
 help:
-	@echo "ARM64 Apple Silicon C Build System"
+	@echo "C-Chat Build System"
 	@echo ""
 	@echo "Targets:"
-	@echo "  all       Build everything (release mode)"
-	@echo "  libs      Build libraries only"  
-	@echo "  apps      Build applications only"
-	@echo "  tests     Build and run tests"
+	@echo "  all       Build c-chat (release mode)"
+	@echo "  c-chat    Build main application"
+	@echo "  test      Build and run tests"
 	@echo "  clean     Clean build artifacts"
 	@echo "  install   Install to /usr/local"
 	@echo "  profile   Build with profiling"
 	@echo "  benchmark Performance benchmark"
+	@echo "  run       Run c-chat"
 	@echo ""
 	@echo "Modes:"
 	@echo "  make MODE=release  Maximum performance (default)"
 	@echo "  make MODE=debug    Debug with sanitizers"
 	@echo "  make MODE=profile  Profiling enabled"
-	@echo ""
-	@echo "Apps: $(APPS)"
-	@echo "Run:  make run-<app>"
 
 # Colors for pretty output
 GREEN := \033[32m
