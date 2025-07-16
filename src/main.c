@@ -73,6 +73,12 @@ int main(int argc, char *argv[]) {
         }
         
         printf("Logged in as '%s'\n", username);
+        
+        // Initialize session with current user
+        extern chat_session_t current_session;
+        safe_strncpy(current_session.current_user.username, username, sizeof(current_session.current_user.username));
+        current_session.current_user.is_authenticated = true;
+        
         run_chat_interface();
         return CCHAT_SUCCESS;
     }

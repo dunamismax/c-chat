@@ -7,6 +7,10 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
+#include <sodium.h>
 
 // Constants
 #define MAX_USERNAME_LEN 32
@@ -14,6 +18,19 @@
 #define MAX_COMMAND_LEN 64
 #define SERVER_HOST "localhost"
 #define SERVER_PORT 8080
+
+// Cryptographic constants (libsodium)
+#define PUBLIC_KEY_SIZE crypto_box_PUBLICKEYBYTES
+#define PRIVATE_KEY_SIZE crypto_box_SECRETKEYBYTES
+#define ENCRYPTED_MSG_SIZE (MAX_MESSAGE_LEN + crypto_box_SEALBYTES)
+#define NONCE_SIZE crypto_box_NONCEBYTES
+#define KEY_DERIVATION_SALT_SIZE crypto_pwhash_SALTBYTES
+#define DERIVED_KEY_SIZE crypto_secretbox_KEYBYTES
+
+// File paths
+#define KEYS_DIR ".c-chat"
+#define PRIVATE_KEY_FILE "private_key"
+#define PUBLIC_KEY_FILE "public_key"
 
 // Error codes
 typedef enum {
@@ -23,14 +40,22 @@ typedef enum {
     CCHAT_ERROR_CRYPTO,
     CCHAT_ERROR_AUTH,
     CCHAT_ERROR_USER_NOT_FOUND,
-    CCHAT_ERROR_MEMORY
+    CCHAT_ERROR_MEMORY,
+    CCHAT_ERROR_FILE_IO,
+    CCHAT_ERROR_KEY_GENERATION,
+    CCHAT_ERROR_ENCRYPTION,
+    CCHAT_ERROR_DECRYPTION,
+    CCHAT_ERROR_KEY_DERIVATION,
+    CCHAT_ERROR_PERMISSION_DENIED
 } cchat_error_t;
 
 // User structure
 typedef struct {
     char username[MAX_USERNAME_LEN];
-    char public_key[256];  // Base64 encoded public key
+    unsigned char public_key[PUBLIC_KEY_SIZE];
+    unsigned char private_key[PRIVATE_KEY_SIZE];
     bool is_authenticated;
+    bool keys_loaded;
 } user_t;
 
 // Chat session structure
@@ -57,9 +82,23 @@ cchat_error_t send_message(const char* message);
 cchat_error_t receive_messages(void);
 
 // Cryptography
-cchat_error_t generate_keypair(char* public_key, char* private_key);
-cchat_error_t encrypt_message(const char* message, const char* public_key, char* encrypted);
-cchat_error_t decrypt_message(const char* encrypted, const char* private_key, char* message);
+cchat_error_t generate_keypair(unsigned char* public_key, unsigned char* private_key);
+cchat_error_t encrypt_message(const char* message, const unsigned char* recipient_public_key, 
+                             unsigned char* encrypted, size_t* encrypted_len);
+cchat_error_t decrypt_message(const unsigned char* encrypted, size_t encrypted_len,
+                             const unsigned char* private_key, char* message, size_t* message_len);
+
+// Key management
+cchat_error_t save_keys_to_file(const char* username, const unsigned char* public_key, 
+                               const unsigned char* private_key, const char* password);
+cchat_error_t load_keys_from_file(const char* username, unsigned char* public_key,
+                                 unsigned char* private_key, const char* password);
+cchat_error_t create_keys_directory(void);
+
+// Password utilities
+cchat_error_t derive_key_from_password(const char* password, const unsigned char* salt,
+                                      unsigned char* derived_key);
+void secure_zero_memory(void* ptr, size_t size);
 
 // Network
 cchat_error_t connect_to_server(void);
@@ -72,5 +111,8 @@ void run_chat_interface(void);
 void clear_screen(void);
 void safe_strncpy(char* dest, const char* src, size_t size);
 cchat_error_t validate_username(const char* username);
+void get_password_input(const char* prompt, char* password, size_t max_len);
+char* get_home_directory(void);
+cchat_error_t secure_file_permissions(const char* filepath);
 
 #endif // C_CHAT_H

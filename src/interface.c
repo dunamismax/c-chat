@@ -25,6 +25,9 @@ void print_version(void) {
     printf("Copyright (c) 2025 - MIT License\n");
 }
 
+// Global current user for session management
+extern chat_session_t current_session;
+
 void run_chat_interface(void) {
     char input[MAX_MESSAGE_LEN];
     char command[MAX_COMMAND_LEN];

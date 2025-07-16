@@ -60,8 +60,29 @@ INCLUDE_DIR := include
 TEST_DIR := tests
 APP_NAME := c-chat
 
-# Include paths
+# Include paths and libraries
 INCLUDES := -I$(INCLUDE_DIR)
+LIBS := -lsodium
+
+# Platform-specific libsodium detection
+ifeq ($(UNAME_S),Darwin)
+  # macOS: Try Homebrew paths
+  BREW_PREFIX := $(shell brew --prefix 2>/dev/null || echo /usr/local)
+  SODIUM_INCLUDE := $(BREW_PREFIX)/include
+  SODIUM_LIB := $(BREW_PREFIX)/lib
+  
+  ifneq ($(wildcard $(SODIUM_INCLUDE)/sodium.h),)
+    INCLUDES += -I$(SODIUM_INCLUDE)
+    LIBS := -L$(SODIUM_LIB) -lsodium
+  else
+    $(warning libsodium not found. Install with: brew install libsodium)
+  endif
+else
+  # Linux: Try pkg-config
+  ifneq ($(shell pkg-config --exists libsodium && echo found),found)
+    $(warning libsodium not found via pkg-config. Install with package manager)
+  endif
+endif
 
 # =============================================================================
 # TARGETS
@@ -88,7 +109,7 @@ build-tests:
 	@for test_file in $$(find $(TEST_DIR) -name "*.c"); do \
 		test_name=$$(basename $$test_file .c); \
 		echo "Building test: $$test_name"; \
-		$(CC) $(CFLAGS) $(INCLUDES) -I$(TEST_DIR) $$test_file $(shell find $(SRC_DIR) -name "*.c" -not -name "main.c") -o $(BUILD_DIR)/bin/$$test_name; \
+		$(CC) $(CFLAGS) $(INCLUDES) -I$(TEST_DIR) $$test_file $(shell find $(SRC_DIR) -name "*.c" -not -name "main.c") $(LIBS) -o $(BUILD_DIR)/bin/$$test_name; \
 	done
 	@echo "✓ Test suite built"
 
@@ -96,7 +117,7 @@ build-tests:
 $(BUILD_DIR)/bin/$(APP_NAME):
 	@mkdir -p $(dir $@) $(BUILD_DIR)/obj
 	@echo "Building $(APP_NAME)..."
-	@$(CC) $(CFLAGS) $(INCLUDES) $(shell find $(SRC_DIR) -name "*.c") -o $@
+	@$(CC) $(CFLAGS) $(INCLUDES) $(shell find $(SRC_DIR) -name "*.c") $(LIBS) -o $@
 	@echo "✓ $(APP_NAME) built successfully"
 
 
