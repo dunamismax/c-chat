@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="c.png" alt="C-Chat Logo" width="200" />
+  <img src="c-chat.png" alt="C-Chat Logo" width="200" />
 </p>
 
 <p align="center">
