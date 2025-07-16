@@ -3,6 +3,7 @@
 
 #include <errno.h>
 #include <getopt.h>
+#include <limits.h>
 #include <sodium.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -12,12 +13,19 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-// Constants
+// Buffer size constants - chosen for reasonable limits while preventing
+// overflow
 #define MAX_USERNAME_LEN 32
 #define MAX_MESSAGE_LEN 1024
 #define MAX_COMMAND_LEN 64
+#define MAX_PASSWORD_LEN 256
 #define SERVER_HOST "localhost"
 #define SERVER_PORT 8080
+
+// Use system PATH_MAX or fallback for path construction safety
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
 
 // Cryptographic constants (libsodium)
 #define PUBLIC_KEY_SIZE crypto_box_PUBLICKEYBYTES
@@ -76,10 +84,22 @@ cchat_error_t register_user(const char *username);
 cchat_error_t login_user(const char *username);
 cchat_error_t list_users(void);
 
+// Secure key management structure - keys are cleared after each session
+typedef struct {
+  unsigned char private_key[PRIVATE_KEY_SIZE];
+  unsigned char partner_public_key[PUBLIC_KEY_SIZE];
+  bool keys_loaded;
+} secure_session_keys_t;
+
 // Chat functionality
 cchat_error_t start_chat(const char *username);
 cchat_error_t send_message(const char *message);
 cchat_error_t receive_messages(void);
+
+// Secure chat functions with explicit key management
+cchat_error_t send_message_secure(const char *message,
+                                  secure_session_keys_t *keys);
+cchat_error_t receive_messages_secure(secure_session_keys_t *keys);
 
 // Cryptography
 cchat_error_t generate_keypair(unsigned char *public_key,
@@ -112,9 +132,21 @@ void secure_zero_memory(void *ptr, size_t size);
 // Network
 cchat_error_t connect_to_server(void);
 cchat_error_t disconnect_from_server(void);
+cchat_error_t register_user_with_server(const char *username,
+                                        const unsigned char *public_key);
+cchat_error_t get_user_public_key(const char *username,
+                                  unsigned char *public_key);
+cchat_error_t send_message_to_server(const char *recipient,
+                                     const unsigned char *encrypted_message,
+                                     size_t message_len);
 
 // Main chat loop
 void run_chat_interface(void);
+
+// System utilities
+cchat_error_t init_crypto_library(void);
+void cleanup_crypto_library(void);
+cchat_error_t secure_clear_screen(void);
 
 // Utility functions
 void clear_screen(void);

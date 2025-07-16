@@ -1,6 +1,13 @@
 #include "c-chat.h"
 
 int main(int argc, char *argv[]) {
+  // Initialize cryptographic library at startup
+  cchat_error_t crypto_result = init_crypto_library();
+  if (crypto_result != CCHAT_SUCCESS) {
+    fprintf(stderr, "Failed to initialize cryptographic library\n");
+    return crypto_result;
+  }
+
   int opt;
   char username[MAX_USERNAME_LEN] = {0};
   bool register_mode = false;
@@ -32,9 +39,11 @@ int main(int argc, char *argv[]) {
       break;
     case 'h':
       print_usage(argv[0]);
+      cleanup_crypto_library();
       return CCHAT_SUCCESS;
     case 'v':
       print_version();
+      cleanup_crypto_library();
       return CCHAT_SUCCESS;
     default:
       print_usage(argv[0]);
@@ -56,6 +65,7 @@ int main(int argc, char *argv[]) {
     }
 
     printf("User '%s' registered successfully!\n", username);
+    cleanup_crypto_library();
     return CCHAT_SUCCESS;
   }
 
@@ -80,6 +90,7 @@ int main(int argc, char *argv[]) {
     current_session.current_user.is_authenticated = true;
 
     run_chat_interface();
+    cleanup_crypto_library();
     return CCHAT_SUCCESS;
   }
 
@@ -89,10 +100,12 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "Failed to list users\n");
       return result;
     }
+    cleanup_crypto_library();
     return CCHAT_SUCCESS;
   }
 
   // No valid option provided
   print_usage(argv[0]);
+  cleanup_crypto_library();
   return CCHAT_ERROR_INVALID_ARGS;
 }

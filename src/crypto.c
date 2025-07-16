@@ -3,19 +3,39 @@
 #include <sys/stat.h>
 #include <time.h>
 
+// Global flag to track libsodium initialization
+static bool crypto_initialized = false;
+
+cchat_error_t init_crypto_library(void) {
+  if (crypto_initialized) {
+    return CCHAT_SUCCESS;
+  }
+
+  if (sodium_init() < 0) {
+    fprintf(stderr, "Failed to initialize libsodium\n");
+    return CCHAT_ERROR_CRYPTO;
+  }
+
+  crypto_initialized = true;
+  return CCHAT_SUCCESS;
+}
+
+void cleanup_crypto_library(void) {
+  // libsodium doesn't require explicit cleanup
+  crypto_initialized = false;
+}
+
 cchat_error_t generate_keypair(unsigned char *public_key,
                                unsigned char *private_key) {
   if (!public_key || !private_key) {
     return CCHAT_ERROR_INVALID_ARGS;
   }
 
-  // Initialize libsodium if not already done
-  if (sodium_init() < 0) {
-    fprintf(stderr, "Failed to initialize libsodium\n");
-    return CCHAT_ERROR_CRYPTO;
+  cchat_error_t result = init_crypto_library();
+  if (result != CCHAT_SUCCESS) {
+    return result;
   }
 
-  // Generate cryptographically secure key pair
   if (crypto_box_keypair(public_key, private_key) != 0) {
     fprintf(stderr, "Failed to generate keypair\n");
     return CCHAT_ERROR_KEY_GENERATION;
@@ -37,13 +57,14 @@ cchat_error_t encrypt_message(const char *message,
     return CCHAT_ERROR_INVALID_ARGS;
   }
 
-  // Initialize libsodium if not already done
-  if (sodium_init() < 0) {
-    return CCHAT_ERROR_CRYPTO;
+  cchat_error_t result = init_crypto_library();
+  if (result != CCHAT_SUCCESS) {
+    return result;
   }
 
-  // Use crypto_box_seal for anonymous encryption (one-way)
-  // This doesn't require the sender's private key
+  // Use crypto_box_seal for anonymous encryption
+  // This creates a sealed box that only the recipient can open with their
+  // keypair Provides forward secrecy as sender's identity is not embedded
   if (crypto_box_seal(encrypted, (const unsigned char *)message, message_len,
                       recipient_public_key) != 0) {
     fprintf(stderr, "Failed to encrypt message\n");
@@ -63,16 +84,18 @@ cchat_error_t decrypt_message(const unsigned char *encrypted,
     return CCHAT_ERROR_INVALID_ARGS;
   }
 
-  // Initialize libsodium if not already done
-  if (sodium_init() < 0) {
-    return CCHAT_ERROR_CRYPTO;
+  cchat_error_t result = init_crypto_library();
+  if (result != CCHAT_SUCCESS) {
+    return result;
   }
 
-  // Derive public key from private key for crypto_box_seal_open
+  // Generate public key from private key using Curve25519 scalar multiplication
+  // Required because crypto_box_seal_open needs both keys to decrypt
   unsigned char public_key[PUBLIC_KEY_SIZE];
   crypto_scalarmult_base(public_key, private_key);
 
-  // Decrypt the message
+  // Decrypt the message using anonymous encryption (crypto_box_seal)
+  // This requires both the recipient's public and private keys
   unsigned char decrypted_buffer[MAX_MESSAGE_LEN + 1];
   if (crypto_box_seal_open(decrypted_buffer, encrypted, encrypted_len,
                            public_key, private_key) != 0) {
@@ -80,10 +103,10 @@ cchat_error_t decrypt_message(const unsigned char *encrypted,
     return CCHAT_ERROR_DECRYPTION;
   }
 
+  // Calculate plaintext length by subtracting encryption overhead
   *message_len = encrypted_len - crypto_box_SEALBYTES;
-  decrypted_buffer[*message_len] = '\0'; // Null terminate
+  decrypted_buffer[*message_len] = '\0';
 
-  // Copy to output buffer
   memcpy(message, decrypted_buffer, *message_len + 1);
 
   // Clear sensitive data
@@ -101,7 +124,6 @@ cchat_error_t save_keys_to_file(const char *username,
     return CCHAT_ERROR_INVALID_ARGS;
   }
 
-  // Create keys directory
   if (create_keys_directory() != CCHAT_SUCCESS) {
     return CCHAT_ERROR_FILE_IO;
   }
@@ -111,11 +133,18 @@ cchat_error_t save_keys_to_file(const char *username,
     return CCHAT_ERROR_FILE_IO;
   }
 
-  char keys_path[512];
-  snprintf(keys_path, sizeof(keys_path), "%s/%s/%s.keys", home_dir, KEYS_DIR,
-           username);
+  // Construct path safely to prevent buffer overflow
+  char keys_path[PATH_MAX];
+  int path_len = snprintf(keys_path, sizeof(keys_path), "%s/%s/%s.keys",
+                          home_dir, KEYS_DIR, username);
+  if (path_len >= (int)sizeof(keys_path) || path_len < 0) {
+    fprintf(stderr, "Path too long for key file\n");
+    free(home_dir);
+    return CCHAT_ERROR_FILE_IO;
+  }
 
-  // Generate salt for key derivation
+  // Generate cryptographically secure random salt for Argon2 key derivation
+  // Each user gets a unique salt to prevent rainbow table attacks
   unsigned char salt[KEY_DERIVATION_SALT_SIZE];
   randombytes_buf(salt, sizeof(salt));
 
@@ -139,7 +168,9 @@ cchat_error_t save_keys_to_file(const char *username,
     return CCHAT_ERROR_ENCRYPTION;
   }
 
-  // Save to file: salt + nonce + public_key + encrypted_private_key
+  // Save key file in secure format:
+  // [salt][nonce][public_key][encrypted_private_key] This layout allows safe
+  // key loading without exposing private key structure
   FILE *file = fopen(keys_path, "wb");
   if (!file) {
     perror("Failed to create key file");
@@ -165,14 +196,14 @@ cchat_error_t save_keys_to_file(const char *username,
 
   // Set secure file permissions (owner read/write only)
   if (secure_file_permissions(keys_path) != CCHAT_SUCCESS) {
-    fprintf(stderr, "Warning: Could not set secure file permissions\\n");
+    fprintf(stderr, "Warning: Could not set secure file permissions\n");
   }
 
   free(home_dir);
   secure_zero_memory(derived_key, sizeof(derived_key));
   secure_zero_memory(encrypted_private, sizeof(encrypted_private));
 
-  printf("Keys saved securely to: %s\\n", keys_path);
+  printf("Keys saved securely to: %s\n", keys_path);
   return CCHAT_SUCCESS;
 }
 
@@ -189,9 +220,14 @@ cchat_error_t load_keys_from_file(const char *username,
     return CCHAT_ERROR_FILE_IO;
   }
 
-  char keys_path[512];
-  snprintf(keys_path, sizeof(keys_path), "%s/%s/%s.keys", home_dir, KEYS_DIR,
-           username);
+  char keys_path[PATH_MAX];
+  int path_len = snprintf(keys_path, sizeof(keys_path), "%s/%s/%s.keys",
+                          home_dir, KEYS_DIR, username);
+  if (path_len >= (int)sizeof(keys_path) || path_len < 0) {
+    fprintf(stderr, "Path too long for key file\n");
+    free(home_dir);
+    return CCHAT_ERROR_FILE_IO;
+  }
 
   FILE *file = fopen(keys_path, "rb");
   if (!file) {
@@ -244,8 +280,14 @@ cchat_error_t create_keys_directory(void) {
     return CCHAT_ERROR_FILE_IO;
   }
 
-  char keys_path[512];
-  snprintf(keys_path, sizeof(keys_path), "%s/%s", home_dir, KEYS_DIR);
+  char keys_path[PATH_MAX];
+  int path_len =
+      snprintf(keys_path, sizeof(keys_path), "%s/%s", home_dir, KEYS_DIR);
+  if (path_len >= (int)sizeof(keys_path) || path_len < 0) {
+    fprintf(stderr, "Path too long for keys directory\n");
+    free(home_dir);
+    return CCHAT_ERROR_FILE_IO;
+  }
 
   struct stat st = {0};
   if (stat(keys_path, &st) == -1) {
@@ -254,7 +296,7 @@ cchat_error_t create_keys_directory(void) {
       free(home_dir);
       return CCHAT_ERROR_FILE_IO;
     }
-    printf("Created keys directory: %s\\n", keys_path);
+    printf("Created keys directory: %s\n", keys_path);
   }
 
   free(home_dir);
@@ -268,12 +310,13 @@ cchat_error_t derive_key_from_password(const char *password,
     return CCHAT_ERROR_INVALID_ARGS;
   }
 
-  // Use Argon2id for key derivation (secure against side-channel attacks)
+  // Use Argon2id key derivation function (memory-hard, side-channel resistant)
+  // INTERACTIVE settings balance security with user experience (~100ms)
   if (crypto_pwhash(derived_key, DERIVED_KEY_SIZE, password, strlen(password),
                     salt, crypto_pwhash_OPSLIMIT_INTERACTIVE,
                     crypto_pwhash_MEMLIMIT_INTERACTIVE,
                     crypto_pwhash_ALG_DEFAULT) != 0) {
-    fprintf(stderr, "Key derivation failed - out of memory\\n");
+    fprintf(stderr, "Key derivation failed - out of memory\n");
     return CCHAT_ERROR_KEY_DERIVATION;
   }
 

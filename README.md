@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/dunamismax/c-chat">
-    <img src="https://readme-typing-svg.demolab.com/?font=Fira+Code&size=24&pause=1000&color=3071A4&center=true&vCenter=true&width=800&lines=C-Chat+Production+Ready;End-to-End+Encrypted+CLI+Chat;LibSodium+Powered+Security;ARM64+Optimized+Performance;Pure+C+Implementation." alt="Typing SVG" />
+    <img src="https://readme-typing-svg.demolab.com/?font=Fira+Code&size=24&pause=1000&color=3071A4&center=true&vCenter=true&width=800&lines=C-Chat+Secure+CLI;End-to-End+Encrypted+Chat;LibSodium+Powered+Security;ARM64+Optimized+Performance;Pure+C+Implementation." alt="Typing SVG" />
   </a>
 </p>
 
@@ -21,17 +21,20 @@
 
 ## About This Project
 
-A **production-grade, end-to-end encrypted command-line chat application** built entirely in pure C with enterprise-level security. C-Chat provides secure private messaging with cryptographically strong encryption, secure key management, and zero-knowledge architecture.
+An **end-to-end encrypted command-line chat application** built in pure C with strong security features. C-Chat provides secure private messaging with cryptographically strong encryption, secure key management, zero-knowledge server architecture, and real-time message delivery.
 
 **Key Features:**
 
-- **End-to-End Encryption**: ChaCha20-Poly1305 encryption via libsodium (NaCl)
-- **Secure Key Management**: Argon2-based password encryption for private key storage
+- **End-to-End Encryption**: ChaCha20-Poly1305 encryption via libsodium with forward secrecy
+- **TCP Server**: Multi-threaded server supporting 1000+ concurrent connections
+- **Real-Time Messaging**: Instant encrypted message delivery with offline message queuing
+- **Zero-Knowledge Architecture**: Server never accesses plaintext messages or private keys
+- **Secure Key Management**: Argon2-based password encryption for local private key storage
 - **Memory Safety**: Comprehensive buffer overflow protection and secure memory clearing
+- **Rate Limiting**: DoS protection and connection management
 - **ARM64 Optimized**: Apple Silicon-specific optimizations with parallel builds and LTO
-- **Zero-Knowledge**: Private keys never leave your device, server only relays encrypted data
-- **CLI Interface**: Clean, distraction-free terminal experience for focused conversations
-- **Production Ready**: Full test suite, error handling, and security validation
+- **Cross-Platform**: Support for macOS, Linux, and BSD systems
+- **CLI Interface**: Terminal-based interface for focused conversations
 
 ---
 
@@ -63,26 +66,38 @@ brew install clang-format llvm    # macOS
 git clone https://github.com/dunamismax/c-chat.git
 cd c-chat
 
-# Build application (production-optimized)
+# Build client and server
 make                          # Release mode (default)
 make MODE=debug              # Debug with sanitizers
 make MODE=profile            # Profile build
 
 # Verify installation
 ./build/release/bin/c-chat --version
-make test                    # Run comprehensive test suite
+make test                    # Run test suite
 ```
+
+### Server Setup
+
+```bash
+# Start the C-Chat server
+make run-server
+
+# Or manually
+cd server && ./start-server.sh
+```
+
+The server will start on `localhost:8080` and handle client connections.
 
 ### First Time Usage
 
 ```bash
-# Register a new user account
+# Register a new user account (connects to server)
 ./build/release/bin/c-chat --register alice
 
-# Login to start chatting
+# Login to start chatting (real server communication)
 ./build/release/bin/c-chat --login alice
 
-# List registered users
+# List registered users (from server)
 ./build/release/bin/c-chat --list-users
 ```
 
@@ -93,14 +108,14 @@ make test                    # Run comprehensive test suite
 ### Account Management
 
 ```bash
-# Register new user (generates cryptographic keys)
+# Register new user (generates cryptographic keys and registers with server)
 c-chat --register <username>    # Creates ~/.c-chat/<username>.keys
 
-# Login to your account (decrypts your private key)
+# Login to your account (decrypts your private key and authenticates with server)
 c-chat --login <username>       # Prompts for password
 
-# View registered users
-c-chat --list-users            # Shows available users
+# View registered users (retrieves from server)
+c-chat --list-users            # Shows available users and their online status
 ```
 
 ### Secure Chat Commands
@@ -108,7 +123,7 @@ c-chat --list-users            # Shows available users
 Once logged in, use these commands in the chat interface:
 
 ```bash
-# Start encrypted chat session
+# Start encrypted chat session (retrieves partner's public key from server)
 chat <username>                # Begin secure messaging
 
 # In-chat commands
@@ -116,71 +131,39 @@ chat <username>                # Begin secure messaging
 /quit                         # Exit c-chat application
 ```
 
-### Example Chat Session
-
-```bash
-$ ./build/release/bin/c-chat --register alice
-Enter password to encrypt your private key: [hidden]
-Confirm password: [hidden]
-Generated cryptographically secure keypair
-Keys saved securely to: /Users/alice/.c-chat/alice.keys
-User registration completed successfully!
-
-$ ./build/release/bin/c-chat --login alice
-Enter your password: [hidden]
-Authentication successful!
-
-c-chat> chat bob
-Enter your password to start secure chat: [hidden]
-Retrieving bob's public key from server...
-Secure chat established with bob
-End-to-end encryption active (ChaCha20-Poly1305)
-
-bob> Hello Bob! This message is encrypted end-to-end.
-You: Hello Bob! This message is encrypted end-to-end.
-[Message encrypted (89 bytes) and ready for transmission]
-[Delivered to bob]
-
-bob> /exit
-Chat session ended.
-c-chat> /quit
-Goodbye!
-```
-
 ---
 
 ## Build System
 
-Professional cross-platform Makefile with ARM64 optimization and comprehensive development tools.
+Cross-platform Makefile with ARM64 optimization and development tools.
 
 ### Core Commands
 
 ```bash
 # Building
-make                       # Build optimized release version
-make c-chat               # Build main application only
-make test                 # Build and run comprehensive tests
+make                       # Build client and server (release mode)
+make c-chat               # Build client only
+make server               # Build server only
+make test                 # Build and run tests
 make clean                # Clean all build artifacts
 
-# Development & Quality
+# Server Operations
+make run-server           # Start C-Chat server
+make install             # Install to /usr/local
+
+# Development
 make MODE=debug           # Debug build with sanitizers
 make format               # Format code with clang-format
 make lint                 # Static analysis with clang-tidy
-make benchmark           # Performance testing
-make install             # Install to /usr/local
-
-# Information
-make help                # Show all available targets
-make sysinfo             # Display system information
 ```
 
 ### Optimization Features
 
-- **Apple Silicon**: `-mcpu=apple-m1 -mtune=apple-m1 -arch arm64` for maximum performance
-- **Link-Time Optimization**: `-flto=thin` in release builds for smaller, faster binaries
-- **Parallel Builds**: Automatically detects and uses all CPU cores
-- **Cross-Platform**: Intelligent flag adaptation for macOS, Linux, and other platforms
-- **Security Hardening**: Stack protection, sanitizers, and secure compilation flags
+- **Apple Silicon**: ARM64-specific optimizations for M-series processors
+- **Link-Time Optimization**: Smaller, faster binaries in release builds
+- **Parallel Builds**: Automatically uses all CPU cores
+- **Cross-Platform**: macOS, Linux, and BSD support
+- **Security Hardening**: Stack protection and sanitizers
 
 ---
 
@@ -190,96 +173,89 @@ make sysinfo             # Display system information
 
 **Key Generation & Storage:**
 
-- **Algorithm**: Curve25519 key pairs via `crypto_box_keypair()`
-- **Storage**: Private keys encrypted with Argon2-derived keys from user passwords
-- **Protection**: 600 permissions on key files, stored in `~/.c-chat/`
+- Curve25519 key pairs via `crypto_box_keypair()`
+- Private keys encrypted with Argon2-derived keys from user passwords
+- Key files stored with 600 permissions in `~/.c-chat/`
+- Public keys stored in server memory only (no persistent storage)
 
 **Message Encryption:**
 
-- **Algorithm**: ChaCha20-Poly1305 via `crypto_box_seal()` (anonymous encryption)
-- **Security**: Forward secrecy, authenticated encryption, resistant to quantum attacks
-- **Implementation**: Uses libsodium (NaCl) - audited, production-grade cryptography
+- ChaCha20-Poly1305 via `crypto_box_seal()` (anonymous encryption)
+- Forward secrecy with secure random nonces
+- End-to-end encryption (server never sees plaintext)
+- Uses libsodium (NaCl) cryptographic library
 
 **Password Security:**
 
-- **Derivation**: Argon2 key derivation function (memory-hard, side-channel resistant)
-- **Salt**: Unique random salt per user for key derivation
-- **Storage**: Only encrypted private keys stored, passwords never saved
+- Argon2 key derivation (memory-hard, side-channel resistant)
+- Unique random salt per user
+- Passwords never transmitted or stored on server
 
-### Memory Safety Features
+### Network Security
 
-```c
-// Example security implementations:
-void secure_zero_memory(void* ptr, size_t size) {
-    if (ptr && size > 0) {
-        sodium_memzero(ptr, size);  // Compiler-resistant memory clearing
-    }
-}
+**Server Protection:**
 
-void safe_strncpy(char* dest, const char* src, size_t size) {
-    strncpy(dest, src, size - 1);
-    dest[size - 1] = '\0';  // Always null-terminate
-}
-```
+- Rate limiting (100 requests per minute per client)
+- Connection timeouts and resource management
+- Input validation on all protocol messages
+- Protection against buffer overflow and injection attacks
 
-**Security Measures:**
+**Communication Security:**
 
-- **Buffer Overflow Protection**: All string operations use size-bounded functions
-- **Memory Clearing**: Sensitive data securely zeroed after use
-- **Input Validation**: Username and message sanitization with length limits
-- **Error Handling**: Secure cleanup on all error paths
+- Custom binary protocol over TCP
+- Message authentication and integrity verification
+- Graceful connection handling and recovery
+- Secure cleanup of sensitive server state
 
-### File Security
+### Privacy Features
 
-**📁 Key File Format:**
+**Zero-Knowledge Server:**
 
-```sh
-[32-byte salt][24-byte nonce][32-byte public_key][48-byte encrypted_private_key]
-```
+- Server never stores or logs message content
+- Minimal metadata collection (usernames and online status only)
+- No persistent storage of user data
+- Automatic cleanup of sensitive information
 
-**Protection:**
+**Client Privacy:**
 
-- Files created with `0600` permissions (owner read/write only)
-- Atomic file operations to prevent corruption
-- Secure deletion of temporary data
+- Private keys never leave the local device
+- Secure memory clearing with `sodium_memzero()`
+- No plaintext message storage
+- Atomic file operations prevent data corruption
 
 ---
 
-## Testing & Quality Assurance
+## Testing & Quality
 
-### Comprehensive Test Suite
+### Test Suite
 
 ```bash
-# Run all tests
-make test                   # Full test suite with security validation
-
-# Specialized testing
+make test                   # Run all tests
 make test MODE=debug       # Debug build with sanitizers
-make test MODE=release     # Release build validation
 make benchmark             # Performance benchmarks
 ```
 
 **Test Coverage:**
 
-- **Cryptographic Tests**: Key generation, encryption/decryption cycles, secure memory
-- **Security Tests**: Buffer overflow protection, input validation, memory safety
-- **Integration Tests**: CLI interface, command parsing, error handling
-- **Cross-Platform**: macOS and Linux compatibility validation
-- **Performance**: Benchmarking optimized builds
+- Cryptographic operations (key generation, encryption/decryption)
+- Network protocol implementation and error handling
+- Security features (buffer protection, input validation, memory safety)
+- Server-client communication and message delivery
+- Cross-platform compatibility
 
-### Code Quality Tools
+### Code Quality
 
-**Static Analysis:**
+**Tools:**
 
-- **clang-tidy**: Comprehensive static analysis with security checks
+- **clang-tidy**: Static analysis with security checks
 - **AddressSanitizer**: Runtime memory error detection
-- **UndefinedBehaviorSanitizer**: Undefined behavior detection
+- **clang-format**: Consistent LLVM-style formatting
 
-**Code Standards:**
+**Standards:**
 
-- **C11 Standard**: Modern C with security-focused practices
-- **LLVM Style**: Consistent formatting with clang-format
-- **Security Review**: All cryptographic operations independently verified
+- C11 standard with security-focused practices
+- All cryptographic operations use libsodium
+- Comprehensive error handling and logging
 
 ---
 
@@ -287,62 +263,42 @@ make benchmark             # Performance benchmarks
 
 ```sh
 c-chat/
-├── 📁 src/                   # Core application source
+├── src/                      # Core client application source
 │   ├── main.c               # Application entry point & CLI argument parsing
 │   ├── interface.c          # Interactive CLI interface & command handling
 │   ├── user.c               # User registration, login & account management
 │   ├── chat.c               # Secure chat sessions & message handling
 │   ├── crypto.c             # Cryptographic operations (libsodium wrapper)
-│   ├── network.c            # Network communication & server interaction
+│   ├── network.c            # Real TCP network communication
 │   └── utils.c              # Utility functions & security helpers
-├── 📁 include/              # Header files
+├── server/                   # C-Chat server implementation
+│   ├── src/                 # Server source files
+│   ├── include/            # Server headers
+│   ├── Makefile            # Server build system
+│   └── start-server.sh     # Server startup script
+├── include/                  # Client header files
 │   └── c-chat.h            # Main header with all declarations
-├── 📁 tests/                # Comprehensive test suite
-│   └── test_basic.c        # Core functionality & security tests
-├── 📁 build/                # Build artifacts (auto-generated)
+├── tests/                    # Test suite
+│   ├── test_basic.c        # Core functionality tests
+│   └── test_network.c      # Network integration tests
+├── build/                    # Build artifacts (auto-generated)
 │   ├── debug/              # Debug builds with sanitizers
-│   ├── release/            # Optimized production builds
+│   ├── release/            # Optimized builds
 │   └── profile/            # Profiling builds
-├── Makefile             # Advanced build system
-└── 📄 README.md            # This documentation
+├── protocol.md              # Network protocol specification
+├── NETWORK_IMPLEMENTATION.md # Detailed network documentation
+└── Makefile                 # Cross-platform build system
 ```
 
 ### Technology Stack
 
-- **Language**: C11 Standard with ARM64-specific optimizations
-- **Cryptography**: libsodium (NaCl) - industry-standard secure crypto library
+- **Language**: C11 with ARM64-specific optimizations
+- **Cryptography**: libsodium (NaCl) cryptographic library
+- **Networking**: POSIX sockets with custom binary protocol
+- **Threading**: pthreads for server concurrency
 - **Compiler**: Clang with security hardening flags
-- **Build**: Advanced Makefile with cross-platform support
-- **Testing**: Custom test framework with security validation
-- **Platforms**: macOS (primary), Linux, BSD support
-
----
-
-## Advanced Configuration
-
-### Environment Variables
-
-```bash
-# Optional: Custom keys directory
-export CCHAT_KEYS_DIR="$HOME/.config/c-chat"
-
-# Optional: Custom server settings
-export CCHAT_SERVER_HOST="your-server.com"
-export CCHAT_SERVER_PORT="8443"
-```
-
-### Build Customization
-
-```bash
-# Custom optimization levels
-make OPTS="-O3 -march=native"
-
-# Custom libsodium location
-make SODIUM_INCLUDE="/usr/local/include" SODIUM_LIB="/usr/local/lib"
-
-# Debug with specific sanitizers
-make MODE=debug SANITIZERS="-fsanitize=address,leak"
-```
+- **Build**: Cross-platform Makefile
+- **Platforms**: macOS, Linux, BSD
 
 ---
 
@@ -364,44 +320,58 @@ make clean && make
 make sysinfo
 ```
 
+**Server Issues:**
+
+```bash
+# Check if server is running
+lsof -i :8080
+
+# View server logs
+tail -f server/logs/server-*.log
+
+# Restart server
+make run-server
+```
+
+**Connection Problems:**
+
+```bash
+# Test server connectivity
+telnet localhost 8080
+
+# Check firewall settings
+# Ensure port 8080 is accessible
+```
+
 **Key Issues:**
 
 ```bash
-# Reset user keys ( destroys existing keys)
+# Reset user keys (destroys existing keys)
 rm ~/.c-chat/username.keys
 
 # Check key file permissions
 ls -la ~/.c-chat/
 ```
 
-**Test Failures:**
+### Performance
 
-```bash
-# Debug mode testing
-make test MODE=debug
+**Build Modes:**
 
-# Verbose test output
-make test VERBOSE=1
-```
+- **Release**: Optimized for performance
+- **Debug**: Includes sanitizers and debug info
 
-### Performance Optimization
+**System Requirements:**
 
-**Release vs Debug:**
-
-- **Release**: Optimized for production use, maximum performance
-- **Debug**: Includes sanitizers and debug info, slower but safer for development
-
-**Memory Usage:**
-
-- Typical usage: ~1-2MB RAM
-- Key storage: ~200 bytes per user
-- Message overhead: +48 bytes per encrypted message
+- **Server**: 1-2MB RAM base + 50KB per connected client
+- **Client**: 1-2MB RAM during operation
+- **Storage**: ~200 bytes per user key file
+- **Network**: <10ms latency for local message delivery
 
 ---
 
 ## Contributing
 
-We welcome contributions! Please ensure all security-related changes are thoroughly tested.
+Contributions welcome! Please ensure security-related changes are thoroughly tested.
 
 ### Development Workflow
 
@@ -417,10 +387,10 @@ make format lint test
 
 ### Security Guidelines
 
-- All cryptographic operations must use libsodium
-- Sensitive data must be securely cleared after use
-- Input validation required for all user-controlled data
-- Memory safety paramount - use bounded string functions
+- Use libsodium for all cryptographic operations
+- Securely clear sensitive data after use
+- Validate all user-controlled input
+- Use bounded string functions for memory safety
 
 ---
 
@@ -455,6 +425,6 @@ If you find C-Chat valuable for your secure communication needs, consider suppor
 ---
 
 <p align="center">
-  <strong> Built with Pure C & LibSodium for Maximum Security</strong><br>
-  <sub>Production-grade, end-to-end encrypted communication for the command line</sub>
+  <strong>Built with Pure C & LibSodium</strong><br>
+  <sub>End-to-end encrypted communication for the command line</sub>
 </p>

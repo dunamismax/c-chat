@@ -1,4 +1,7 @@
 #include "c-chat.h"
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 void print_usage(const char *program_name) {
   printf("C-Chat - Secure End-to-End Encrypted CLI Chat\n\n");
@@ -71,10 +74,35 @@ void run_chat_interface(void) {
   }
 }
 
-void clear_screen(void) {
+cchat_error_t secure_clear_screen(void) {
 #ifdef _WIN32
-  system("cls");
+  // Use Windows API instead of system() call
+  HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+  if (hConsole == INVALID_HANDLE_VALUE) {
+    return CCHAT_ERROR_INVALID_ARGS;
+  }
+
+  CONSOLE_SCREEN_BUFFER_INFO csbi;
+  if (!GetConsoleScreenBufferInfo(hConsole, &csbi)) {
+    return CCHAT_ERROR_INVALID_ARGS;
+  }
+
+  COORD coordScreen = {0, 0};
+  DWORD cCharsWritten;
+  DWORD dwConSize = csbi.dwSize.X * csbi.dwSize.Y;
+
+  if (!FillConsoleOutputCharacter(hConsole, ' ', dwConSize, coordScreen,
+                                  &cCharsWritten)) {
+    return CCHAT_ERROR_INVALID_ARGS;
+  }
+
+  if (!SetConsoleCursorPosition(hConsole, coordScreen)) {
+    return CCHAT_ERROR_INVALID_ARGS;
+  }
 #else
-  system("clear");
+  // Use ANSI escape sequences instead of system() call
+  printf("\033[2J\033[H");
+  fflush(stdout);
 #endif
+  return CCHAT_SUCCESS;
 }

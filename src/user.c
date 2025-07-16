@@ -1,22 +1,29 @@
 #include "c-chat.h"
+#include <sys/stat.h>
 
 cchat_error_t register_user(const char *username) {
   printf("Registering user: %s\n", username);
 
-  // Check if user already exists
-  unsigned char existing_public[PUBLIC_KEY_SIZE];
-  unsigned char existing_private[PRIVATE_KEY_SIZE];
-  char temp_password[256];
+  // Check if user already exists by checking for key file
+  char *home_dir = get_home_directory();
+  if (!home_dir) {
+    return CCHAT_ERROR_FILE_IO;
+  }
 
-  get_password_input("Enter a temporary password to check existing keys: ",
-                     temp_password, sizeof(temp_password));
+  char keys_path[PATH_MAX];
+  int path_len = snprintf(keys_path, sizeof(keys_path), "%s/%s/%s.keys",
+                          home_dir, KEYS_DIR, username);
+  free(home_dir);
 
-  if (load_keys_from_file(username, existing_public, existing_private,
-                          temp_password) == CCHAT_SUCCESS) {
+  if (path_len >= (int)sizeof(keys_path) || path_len < 0) {
+    return CCHAT_ERROR_FILE_IO;
+  }
+
+  // Check if key file exists (safer than attempting decryption with wrong
+  // password)
+  struct stat st;
+  if (stat(keys_path, &st) == 0) {
     printf("User %s already exists. Use --login instead.\n", username);
-    secure_zero_memory(temp_password, sizeof(temp_password));
-    secure_zero_memory(existing_public, sizeof(existing_public));
-    secure_zero_memory(existing_private, sizeof(existing_private));
     return CCHAT_ERROR_AUTH;
   }
 
@@ -27,13 +34,12 @@ cchat_error_t register_user(const char *username) {
   cchat_error_t result = generate_keypair(public_key, private_key);
   if (result != CCHAT_SUCCESS) {
     fprintf(stderr, "Failed to generate keypair\n");
-    secure_zero_memory(temp_password, sizeof(temp_password));
     return result;
   }
 
   // Get password for key encryption
-  char password[256];
-  char confirm_password[256];
+  char password[MAX_PASSWORD_LEN];
+  char confirm_password[MAX_PASSWORD_LEN];
 
   do {
     get_password_input("Enter password to encrypt your private key: ", password,
@@ -49,7 +55,6 @@ cchat_error_t register_user(const char *username) {
   } while (strcmp(password, confirm_password) != 0);
 
   secure_zero_memory(confirm_password, sizeof(confirm_password));
-  secure_zero_memory(temp_password, sizeof(temp_password));
 
   // Store keys locally (encrypted with password)
   result = save_keys_to_file(username, public_key, private_key, password);
@@ -61,10 +66,23 @@ cchat_error_t register_user(const char *username) {
     return result;
   }
 
-  // TODO: Send public key to server for registration
-  printf("\nUser registration completed successfully!\n");
-  printf("Your cryptographic keys have been generated and stored securely.\n");
-  printf("Public key has been prepared for server registration.\n");
+  // Connect to server and register user
+  cchat_error_t server_result = connect_to_server();
+  if (server_result == CCHAT_SUCCESS) {
+    server_result = register_user_with_server(username, public_key);
+    if (server_result == CCHAT_SUCCESS) {
+      printf("\nUser registration completed successfully!\n");
+      printf("Your account has been registered with the C-Chat server.\n");
+    } else {
+      printf("\nLocal keys created, but server registration failed.\n");
+      printf("You can retry connecting to the server later.\n");
+    }
+    disconnect_from_server();
+  } else {
+    printf("\nLocal keys created, but could not connect to server.\n");
+    printf("Your keys are saved locally and you can register with the server "
+           "later.\n");
+  }
 
   // Clear sensitive data
   secure_zero_memory(password, sizeof(password));
@@ -78,7 +96,7 @@ cchat_error_t login_user(const char *username) {
   printf("Logging in user: %s\n", username);
 
   // Get password to decrypt private key
-  char password[256];
+  char password[MAX_PASSWORD_LEN];
   get_password_input("Enter your password: ", password, sizeof(password));
 
   // Load and decrypt keys from local storage
@@ -128,16 +146,18 @@ cchat_error_t list_users(void) {
 }
 
 cchat_error_t validate_username(const char *username) {
-  if (!username || strlen(username) == 0) {
+  if (!username) {
     return CCHAT_ERROR_INVALID_ARGS;
   }
 
-  if (strlen(username) >= MAX_USERNAME_LEN) {
+  // Cache length to avoid O(n²) complexity and validate bounds
+  size_t len = strlen(username);
+  if (len == 0 || len >= MAX_USERNAME_LEN) {
     return CCHAT_ERROR_INVALID_ARGS;
   }
 
   // Check for valid characters (alphanumeric and underscore only)
-  for (size_t i = 0; i < strlen(username); i++) {
+  for (size_t i = 0; i < len; i++) {
     char c = username[i];
     if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
           (c >= '0' && c <= '9') || c == '_')) {

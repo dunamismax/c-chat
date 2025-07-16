@@ -88,7 +88,7 @@ endif
 # TARGETS
 # =============================================================================
 
-.PHONY: all c-chat tests build-tests clean install help
+.PHONY: all c-chat server tests build-tests clean install help run-server
 .DEFAULT_GOAL := all
 
 # Parallel builds enabled by default
@@ -98,10 +98,15 @@ else
   MAKEFLAGS += -j$(shell nproc)
 endif
 
-all: c-chat
+all: c-chat server
 	@echo "✓ Build completed ($(MODE) mode) - Optimized for $(UNAME_S) $(UNAME_M)"
 
 c-chat: $(BUILD_DIR)/bin/$(APP_NAME)
+
+server:
+	@echo "Building C-Chat Server..."
+	@$(MAKE) -C server MODE=$(MODE)
+	@echo "✓ Server built successfully"
 
 build-tests:
 	@echo "Building test suite..."
@@ -128,10 +133,12 @@ $(BUILD_DIR)/bin/$(APP_NAME):
 
 clean:
 	@rm -rf build
+	@$(MAKE) -C server clean
 	@echo "✓ Cleaned"
 
 install: all
 	@sudo cp $(BUILD_DIR)/bin/* /usr/local/bin/ 2>/dev/null || true
+	@sudo cp server/build/$(MODE)/bin/* /usr/local/bin/ 2>/dev/null || true
 	@sudo cp $(BUILD_DIR)/lib/* /usr/local/lib/ 2>/dev/null || true
 	@echo "✓ Installed to /usr/local"
 
@@ -164,6 +171,10 @@ benchmark: all
 run: $(BUILD_DIR)/bin/$(APP_NAME)
 	@./$<
 
+run-server: server
+	@echo "Starting C-Chat Server..."
+	@cd server && ./start-server.sh $(MODE)
+
 sysinfo:
 	@echo "System: $$(uname -srm)"
 ifeq ($(UNAME_S),Darwin)
@@ -182,19 +193,25 @@ help:
 	@echo "C-Chat Build System"
 	@echo ""
 	@echo "Targets:"
-	@echo "  all       Build c-chat (release mode)"
-	@echo "  c-chat    Build main application"
+	@echo "  all       Build c-chat client and server (release mode)"
+	@echo "  c-chat    Build main client application"
+	@echo "  server    Build c-chat server"
 	@echo "  test      Build and run tests"
 	@echo "  clean     Clean build artifacts"
 	@echo "  install   Install to /usr/local"
 	@echo "  profile   Build with profiling"
 	@echo "  benchmark Performance benchmark"
-	@echo "  run       Run c-chat"
+	@echo "  run       Run c-chat client"
+	@echo "  run-server Start c-chat server"
 	@echo ""
 	@echo "Modes:"
 	@echo "  make MODE=release  Maximum performance (default)"
 	@echo "  make MODE=debug    Debug with sanitizers"
 	@echo "  make MODE=profile  Profiling enabled"
+	@echo ""
+	@echo "Server Usage:"
+	@echo "  make run-server           Start server in background"
+	@echo "  make server && cd server && ./start-server.sh"
 
 # Colors for pretty output
 GREEN := \033[32m
